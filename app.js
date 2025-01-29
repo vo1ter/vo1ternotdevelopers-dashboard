@@ -16,7 +16,7 @@ app.get('/get/server/neofetch', (req, res) => {
         cpuTemperature: "*",
         mem: "total, free, used, active",
         system: "model",
-        osInfo: "platform, distro, kernel, hostname, logofile",
+        osInfo: "platform, distro, kernel, hostname, logofile, release",
         time: "uptime",
         currentLoad: "currentLoad",
         services: "*"

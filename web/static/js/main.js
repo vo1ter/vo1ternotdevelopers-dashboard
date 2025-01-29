@@ -5,7 +5,7 @@ window.onload = async () => {
     document.querySelector("#CPU").innerHTML = data.cpu.brand;
     document.querySelector("#host").innerHTML = data.system.model;
     document.querySelector("#kernel").innerHTML = data.osInfo.kernel;
-    document.querySelector("#OS").innerHTML = data.osInfo.distro;
+    document.querySelector("#OS").innerHTML = `${data.osInfo.distro} + ${data.osInfo.release}`;
     document.querySelector("#machine-name").innerHTML = data.osInfo.hostname;
     document.querySelector("#memory").innerHTML = `${parseInt(convertBytes(data.mem.used, "MB"))} MiB / ${parseInt(convertBytes(data.mem.total, "MB"))} MiB`;
     document.querySelector("#uptime").innerHTML = converTime(data.time.uptime);
