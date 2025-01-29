@@ -1,5 +1,6 @@
 const express = require('express')
 const si = require("systeminformation");
+const fs = require("fs");
 const app = express()
 const port = 3000
 
@@ -27,6 +28,40 @@ app.get('/get/server/neofetch', (req, res) => {
     .catch(err => {
         res.json(err);
     });
+})
+
+app.get("/get/server/services", (req, res) => {
+    si.services("*")
+    .then(data => {
+        res.json(data);
+    })
+    .catch(err => {
+        res.json(err);
+    });
+})
+
+app.get("/get/ascii/:distro", (req, res) => {
+    const os = req.params.distro.split(" ");
+    const osList = JSON.parse(fs.readFileSync("web/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
+
+    os.forEach((element, index) => {
+        os[index] = element.toLowerCase();
+    })
+
+    let lookupResult = {
+        success: false
+    };
+
+    Object.keys(osList).forEach((key) => {
+        if(os.includes(key)) {
+            return lookupResult = {
+                success: true,
+                ascii: osList[key].ascii
+            }
+        }
+    })
+
+    return res.json(lookupResult)
 })
 
 app.listen(port, () => {

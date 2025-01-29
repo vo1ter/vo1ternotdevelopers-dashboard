@@ -94,7 +94,7 @@ body {
 }
 
 .block:nth-child(1) > .big-card:nth-child(2) {
-    max-height: 25%;
+    height: auto;
     display: flex;
     flex-direction: row;
     gap: 1em;
@@ -151,6 +151,9 @@ body {
 
 .ascii-art {
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     height: 100%;
 }
 
@@ -159,4 +162,10 @@ body {
     filter: invert(1);
     max-width: 100%;
     max-height: 100%;
+}
+
+#ascii-art-text {
+    font-size: 0.7em;
+    font-family: monospace;
+    white-space: pre;
 }

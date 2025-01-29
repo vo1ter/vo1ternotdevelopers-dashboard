@@ -11,7 +11,7 @@
     Loading neofetch...
 </div>
 <div class="background">
-    <img src="static/images/logos/svg/ubuntu.svg" alt="">
+    <img id="distro-logo" src="static/images/logos/svg/ubuntu.svg" alt="">
     <div class="background-dim"></div>
 </div>
 <div class="container">
@@ -77,9 +77,10 @@
         </div>
         <div class="big-card">
             <div class="ascii-art">
-                <img src="static/images/logos/ascii/ubuntu-ascii-art.png" alt="ascii art">
+                <pre id="ascii-art-text"></pre>
+                <!-- <img src="static/images/logos/ascii/ubuntu-ascii-art.png" alt="ascii art"> -->
             </div>
-            <div class="card" style="width: 100%;">
+            <div class="card">
                 <div class="card-desc">
                     <p style="height: auto;">root@<span id="machine-name"></span>: neofetch</p>
                     <div>
@@ -103,18 +104,27 @@
         <div class="card">
             <div class="card-desc">
                 <p>Cpu usage:</p>
-                <p id="cpu-usage-text">34%</p>
+                <p id="cpu-usage-text">0%</p>
                 <div class="progress-bar">
-                    <div class="progress-bar-fill" id="cpu-usage" style="width: 34%"></div>
+                    <div class="progress-bar-fill" id="cpu-usage" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-desc">
+                <p>Cpu Temp:</p>
+                <p id="cpu-temp-text">0</p>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" id="cpu-temp" style="width: 0%"></div>
                 </div>
             </div>
         </div>
         <div class="card">
             <div class="card-desc">
                 <p>Ram usage:</p>
-                <p id="ram-usage-text">34%</p>
+                <p id="ram-usage-text">0%</p>
                 <div class="progress-bar">
-                    <div class="progress-bar-fill" id="ram-usage" style="width: 34%"></div>
+                    <div class="progress-bar-fill" id="ram-usage" style="width: 0%"></div>
                 </div>
             </div>
         </div>
