@@ -1,0 +1,30 @@
+:root {
+    --ubuntu-color: #E95420;
+    --debian-color: #A80030;
+    --arch-color: #1793D1;
+    --fedora-color: #294172;
+    --opensuse-color: #73BA25;
+    --manjaro-color: #35BF5C;
+    --elementary-color: #64B5F6;
+    --popos-color: #48B9C7;
+    --kali-color: #268BD2;
+    --gentoo-color: #54487A;
+    --slackware-color: #3984C6;
+    --linuxmint-color: #87CF3E;
+    --zorin-color: #0CC1F3;
+    --centos-color: #262577;
+    --redhat-color: #CC0000;
+    --almalinux-color: #2C3C72;
+    --rocky-color: #10B981;
+    --void-color: #3E7C36;
+    --parrot-color: #47A027;
+    --mageia-color: #0098C7;
+    --garuda-color: #8C6FF0;
+    --endeavouros-color: #7E57C2;
+    --deepin-color: #007CFF;
+    --mxlinux-color: #4D4D4D;
+    --solus-color: #5294E2;
+    --android-color: #3DDC84;
+    --windows-color: #0078D6;
+    --macos-color: #333333;
+}
