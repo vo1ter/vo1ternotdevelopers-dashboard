@@ -50,9 +50,10 @@ body {
 
 .background > img {
     position: absolute;
-    left: 50%;
-    top: -60vh;
-    width: 75%;
+    top: 0;
+    right: 0;
+    transform: translate(40%, -40%);
+    width: 90%;
     z-index: 0;
 }
 
@@ -89,8 +90,21 @@ body {
     padding: 1em
 }
 
-.big-card > .card {
-    flex: 1;
+.services-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1em;
+    overflow-y: auto;
+    max-height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--in-background-color) var(--background-color);
+    padding: 0 0.5em;
+}
+
+.services-container > .card {
+    background-color: var(--in-foreground-color);
+    flex: 1 0 25%;
 }
 
 .block:nth-child(1) > .big-card:nth-child(2) {
@@ -103,6 +117,10 @@ body {
 
 .block:nth-child(1) > .big-card:nth-child(2) > .card {
     background-color: #000000;
+}
+
+.block:nth-child(1) {
+    max-height: calc(90% - 1em);
 }
 
 .block:nth-child(2) {
@@ -175,4 +193,18 @@ body {
 
 .neofetch > *, .neofetch > * > *, #ascii-art-text {
     font-family: 'Courier New', monospace !important;
+}
+
+.cpu-cores-container {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5em;
+}
+
+.cpu-core {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    flex: 1;
+    background-color: var(--in-foreground-color);
 }

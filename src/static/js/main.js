@@ -22,6 +22,7 @@ const fields = {
         ram: {
             usageProgress: document.querySelector("#ram-usage"),
             usageText: document.querySelector("#ram-usage-text"),
+            usageTextMb: document.querySelector("#ram-usage-text-mb"),
         }
     }
 }
@@ -63,14 +64,12 @@ window.onload = async () => {
 }
 
 socket.on("neofetchData", (data) => {
-    fields.neofetch.cpu.innerHTML = data.cpu.brand;
+    fields.neofetch.cpu.innerHTML = `${data.cpu.manufacturer} ${data.cpu.brand}`;
     fields.neofetch.host.innerHTML = data.system.model;
     fields.neofetch.kernel.innerHTML = data.osInfo.kernel;
     fields.neofetch.os.innerHTML = `${data.osInfo.distro} ${data.osInfo.release}`;
     fields.neofetch.machineName.innerHTML = data.osInfo.hostname;
     fields.neofetch.ram.innerHTML = `${parseInt(convertBytes(data.mem.used, "MB"))} MiB / ${parseInt(convertBytes(data.mem.total, "MB"))} MiB`;
-
-    // data.osInfo.logofile = "windows"
 
     fields.stats.uptime.innerHTML = converTime(data.time.uptime);
     fields.stats.uptime.setAttribute("data-seconds", parseInt(data.time.uptime));
@@ -81,8 +80,17 @@ socket.on("neofetchData", (data) => {
     fields.stats.cpu.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
     fields.stats.cpu.tempProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
 
+    for(let i = 0; i < data.cpu.cores; i++) {
+        document.querySelector(".cpu-cores-container").innerHTML += `
+        <div class="cpu-core" id="cpu-core-${i}">
+            <div class="cpu-core-fill" style="background-color: ${bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`)}; height: 0%;"></div>
+        </div>`;
+    }
+
     loader.innerHTML = "Loading ascii art...";
-    socket.emit("getAsciiArt", data.osInfo.logofile);
+    socket.emit("getAsciiArt", data.osInfo.distro);
+    loader.innerHTML = "Loading services..."
+    socket.emit("getServices");
     loader.innerHTML = "Loading usage stats...";
 })
 
@@ -97,8 +105,34 @@ socket.on("usageData", (data) => {
     fields.stats.cpu.usageProgress.style.width = `${parseFloat(data.currentLoad.currentLoad).toFixed(2)}%`;
     fields.stats.cpu.tempText.innerHTML = `${parseFloat(data.cpuTemperature.main).toFixed(2)}°`;
     fields.stats.cpu.tempProgress.style.width = `${parseFloat((data.cpuTemperature.main * 100) / 100).toFixed(2)}%`;
+    document.querySelectorAll(".cpu-core-fill").forEach((el, i) => el.style.height = `${parseFloat(data.currentLoad.cpus[i].load).toFixed(2)}%`);
     fields.stats.ram.usageText.innerHTML = `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
     fields.stats.ram.usageProgress.style.width= `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
+    fields.stats.ram.usageTextMb.innerHTML = `${parseInt(convertBytes(data.mem.used, "MB"))}/${parseInt(convertBytes(data.mem.total, "MB"))} MB`;
+})
+
+socket.on("services", (data) => {
+    data.forEach((service) => {
+        document.querySelector(".services-container").innerHTML += `
+        <div class="card" id="service-${service.name}">
+            <div class="card-desc">
+                <p>${service.name}</p>
+                <p>Status: <span id="service-${service.name}-status">${service.running ? "Running" : "Stopped"}</span></p>
+                <p>CPU Usage: <span id="service-${service.name}-cpu-usage">${parseFloat(service.cpu).toFixed(2)}</span>%</p>
+                <p>RAM Usage: <span id="service-${service.name}-ram-usage">${parseFloat(service.mem).toFixed(2)}</span>%</p>
+            </div>
+        </div>
+        `;
+    })
+})
+
+socket.on("servicesUpdate", (data) => {
+    if(document.querySelector(".services-container").children.length == 0) return
+    data.forEach((service) => {
+        document.querySelector(`#service-${service.name}-status`).innerHTML = service.running ? "Running" : "Stopped";
+        document.querySelector(`#service-${service.name}-cpu-usage`).innerHTML = parseFloat(service.cpu).toFixed(2);
+        document.querySelector(`#service-${service.name}-ram-usage`).innerHTML = parseFloat(service.mem).toFixed(2);
+    })
 })
 
 function convertBytes(bytes, convertTo) {

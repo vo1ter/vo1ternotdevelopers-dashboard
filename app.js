@@ -2,11 +2,32 @@ const express = require('express')
 const si = require("systeminformation");
 const { Server } = require("socket.io");
 const fs = require("fs");
-const app = express()
-const port = 3000
+const app = express();
+let port = 3000;
+let forceOs = {
+    use: false,
+    forceTo: "",
+    name: "",
+}
+
+process.argv.forEach((val, index) => {
+    if(val == "--port" && parseInt(process.argv[index + 1]) > 0 && parseInt(process.argv[index + 1]) < 65536) port = process.argv[index + 1];
+    if(val == "--force-os") {
+        const osList = JSON.parse(fs.readFileSync("web/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
+
+        Object.keys(osList).forEach((key) => {
+            if(key == process.argv[index + 1].toLowerCase()) {
+                console.log(`Forcing OS to ${process.argv[index + 1]}`);
+                forceOs.use = true;
+                forceOs.forceTo = key;
+                forceOs.name = osList[key].name;
+            }
+        })
+    }
+});
 
 const server = app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+    console.log(`Dashboard listening on port ${port}`)
 })
 
 const io = new Server(server);
@@ -18,20 +39,11 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/web/index.html');
 })
 
-app.get("/get/server/services", (req, res) => {
-    si.services("*")
-    .then(data => {
-        res.json(data);
-    })
-    .catch(err => {
-        res.json(err);
-    });
-})
-
 setInterval(async () => {
     if(io.engine.clientsCount == 0) return;
     
     io.emit("usageData", await getServerUsage());
+    io.emit("servicesUpdate", await getServerServices());
 }, 1000)
 
 io.on('connection', (socket) => {
@@ -66,11 +78,15 @@ io.on('connection', (socket) => {
 
         socket.emit("asciiArt", lookupResult);
     })
+
+    socket.on("getServices", async () => {
+        socket.emit("services", await getServerServices());
+    })
 });
 
 async function getServerData() {
     return await si.get({
-        cpu: 'brand',
+        cpu: 'manufacturer, brand, cores',
         mem: "total, free, used, active",
         system: "model",
         osInfo: "platform, distro, kernel, hostname, logofile, release",
@@ -78,6 +94,10 @@ async function getServerData() {
         currentLoad: "currentLoad"
     })
     .then(data => {
+        if(forceOs.use) {
+            data.osInfo.logofile = forceOs.forceTo;
+            data.osInfo.distro = forceOs.name;
+        }
         return data
     })
     .catch(err => {
@@ -90,8 +110,25 @@ async function getServerUsage() {
         cpuTemperature: "*",
         mem: "total, free, used, active",
         time: "uptime",
-        currentLoad: "currentLoad"
+        currentLoad: "currentLoad, cpus"
     })
+    .then(data => {
+        return data
+    })
+    .catch(err => {
+        return err
+    });
+}
+
+async function getServerServices() {
+    const servicesData = JSON.parse(fs.readFileSync("web/static/json/services.json", { encoding: 'utf8', flag: 'r' }));
+    let servicesArray = [];
+
+    Object.keys(servicesData).forEach((key) => {
+        servicesArray.push(servicesData[key].name);
+    })
+
+    return await si.services(servicesArray.join(","))
     .then(data => {
         return data
     })

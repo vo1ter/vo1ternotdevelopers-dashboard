@@ -1,0 +1,18 @@
+{
+    "nginx": {
+        "name": "nginx",
+        "icon": "/static/images/services/nginx.svg"
+    },
+    "docker": {
+        "name": "Docker",
+        "icon": "/static/images/services/nginx.svg"
+    },
+    "ssh": {
+        "name": "SSH",
+        "icon": "/static/images/services/nginx.svg"
+    },
+    "ufw": {
+        "name": "UFW",
+        "icon": "/static/images/services/nginx.svg"
+    }
+}
