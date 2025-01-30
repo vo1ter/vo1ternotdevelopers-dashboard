@@ -1,3 +1,7 @@
+const socket = io();
+const bodyStyles = window.getComputedStyle(document.body);
+const loader = document.querySelector(".loader");
+
 const fields = {
     neofetch: {
         cpu: document.querySelector("#CPU"),
@@ -23,42 +27,12 @@ const fields = {
 }
 
 window.onload = async () => {
-    const bodyStyles = window.getComputedStyle(document.body);
-    
-    const response = await fetch("/get/server/neofetch");
-    const data = await response.json();
+    loader.innerHTML = "Loading neofetch...";
+    socket.emit("getNeofetchData");
 
-    fields.neofetch.cpu.innerHTML = data.cpu.brand;
-    fields.neofetch.host.innerHTML = data.system.model;
-    fields.neofetch.kernel.innerHTML = data.osInfo.kernel;
-    fields.neofetch.os.innerHTML = `${data.osInfo.distro} ${data.osInfo.release}`;
-    fields.neofetch.machineName.innerHTML = data.osInfo.hostname;
-    fields.neofetch.ram.innerHTML = `${parseInt(convertBytes(data.mem.used, "MB"))} MiB / ${parseInt(convertBytes(data.mem.total, "MB"))} MiB`;
-
-    // data.osInfo.logofile = "arch"
-
-    fields.stats.uptime.innerHTML = converTime(data.time.uptime);
-    fields.stats.uptime.setAttribute("data-seconds", parseInt(data.time.uptime));
-
-    document.querySelector("#distro-logo").setAttribute("src", `static/images/logos/svg/${data.osInfo.logofile}.svg`)
-
-    const asciiArt = await fetch(`/get/ascii/${data.osInfo.logofile}`)
-    const asciiArtData = await asciiArt.json();
-
-    // regex for spaces: (\S)\s
-
-    if(await asciiArtData.success == true) {
-        document.querySelector("#ascii-art-text").innerHTML = asciiArtData.ascii;
-    }
-
-    fields.stats.ram.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
-    fields.stats.cpu.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
-    fields.stats.cpu.tempProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
-
-    updateServerData();
     let loaderInterval = setInterval(() => {
         if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%") {
-            document.querySelector(".loader").animate(
+            loader.animate(
                 [
                     { opacity: `1` },
                     { opacity: `0` },
@@ -70,7 +44,7 @@ window.onload = async () => {
                     fill: "forwards"
                 }
             ).onfinish = () => {
-                document.querySelector(".loader").remove();
+                loader.remove();
             };
 
             clearInterval(loaderInterval);
@@ -86,11 +60,46 @@ window.onload = async () => {
             fields.stats.uptime.setAttribute("data-seconds", uptime);
         }
     }, 1000);
-
-    let updateServerDataInterval = setInterval(() => {
-        if(document.querySelector(".loader") == null) updateServerData();
-    }, 1000)
 }
+
+socket.on("neofetchData", (data) => {
+    fields.neofetch.cpu.innerHTML = data.cpu.brand;
+    fields.neofetch.host.innerHTML = data.system.model;
+    fields.neofetch.kernel.innerHTML = data.osInfo.kernel;
+    fields.neofetch.os.innerHTML = `${data.osInfo.distro} ${data.osInfo.release}`;
+    fields.neofetch.machineName.innerHTML = data.osInfo.hostname;
+    fields.neofetch.ram.innerHTML = `${parseInt(convertBytes(data.mem.used, "MB"))} MiB / ${parseInt(convertBytes(data.mem.total, "MB"))} MiB`;
+
+    // data.osInfo.logofile = "windows"
+
+    fields.stats.uptime.innerHTML = converTime(data.time.uptime);
+    fields.stats.uptime.setAttribute("data-seconds", parseInt(data.time.uptime));
+
+    document.querySelector("#distro-logo").setAttribute("src", `static/images/logos/svg/${data.osInfo.logofile}.svg`)
+
+    fields.stats.ram.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
+    fields.stats.cpu.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
+    fields.stats.cpu.tempProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
+
+    loader.innerHTML = "Loading ascii art...";
+    socket.emit("getAsciiArt", data.osInfo.logofile);
+    loader.innerHTML = "Loading usage stats...";
+})
+
+socket.on("asciiArt", async (data) => {
+    if(await data.success == true) {
+        document.querySelector("#ascii-art-text").innerHTML = data.ascii;
+    }
+})
+
+socket.on("usageData", (data) => {
+    fields.stats.cpu.usageText.innerHTML = `${parseFloat(data.currentLoad.currentLoad).toFixed(2)}%`;
+    fields.stats.cpu.usageProgress.style.width = `${parseFloat(data.currentLoad.currentLoad).toFixed(2)}%`;
+    fields.stats.cpu.tempText.innerHTML = `${parseFloat(data.cpuTemperature.main).toFixed(2)}°`;
+    fields.stats.cpu.tempProgress.style.width = `${parseFloat((data.cpuTemperature.main * 100) / 100).toFixed(2)}%`;
+    fields.stats.ram.usageText.innerHTML = `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
+    fields.stats.ram.usageProgress.style.width= `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
+})
 
 function convertBytes(bytes, convertTo) {
     switch(convertTo) {
@@ -115,16 +124,4 @@ function converTime(seconds) {
     if(hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
     else if(minutes > 0) return `${minutes}m ${seconds}s`; 
     else return `${seconds}s`;
-}
-
-async function updateServerData() {
-    const response = await fetch("/get/server/neofetch");
-    const data = await response.json();
-    
-    fields.stats.cpu.usageText.innerHTML = `${parseFloat(data.currentLoad.currentLoad).toFixed(2)}%`;
-    fields.stats.cpu.usageProgress.style.width = `${parseFloat(data.currentLoad.currentLoad).toFixed(2)}%`;
-    fields.stats.cpu.tempText.innerHTML = `${parseFloat(data.cpuTemperature.main).toFixed(2)}°`;
-    fields.stats.cpu.tempProgress.style.width = `${parseFloat((data.cpuTemperature.main * 100) / 100).toFixed(2)}%`;
-    fields.stats.ram.usageText.innerHTML = `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
-    fields.stats.ram.usageProgress.style.width= `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
 }

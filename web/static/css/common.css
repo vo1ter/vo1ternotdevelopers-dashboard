@@ -98,6 +98,11 @@ body {
     display: flex;
     flex-direction: row;
     gap: 1em;
+    background-color: #000000;
+}
+
+.block:nth-child(1) > .big-card:nth-child(2) > .card {
+    background-color: #000000;
 }
 
 .block:nth-child(2) {
@@ -165,7 +170,9 @@ body {
 }
 
 #ascii-art-text {
-    font-size: 0.7em;
-    font-family: monospace;
-    white-space: pre;
+    font-size: 0.5em;
+}
+
+.neofetch > *, .neofetch > * > *, #ascii-art-text {
+    font-family: 'Courier New', monospace !important;
 }

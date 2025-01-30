@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>vo1ternotdeveloper's dashboard</title>
     <link rel="stylesheet" href="static/css/common.css">
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
 <body>
 <div class="loader">
-    Loading neofetch...
+    Connecting to websocket...
 </div>
 <div class="background">
     <img id="distro-logo" src="static/images/logos/svg/ubuntu.svg" alt="">
@@ -80,17 +81,13 @@
                 <pre id="ascii-art-text"></pre>
                 <!-- <img src="static/images/logos/ascii/ubuntu-ascii-art.png" alt="ascii art"> -->
             </div>
-            <div class="card">
-                <div class="card-desc">
-                    <p style="height: auto;">root@<span id="machine-name"></span>: neofetch</p>
-                    <div>
-                        <p>OS: <span id="OS"></span></p>
-                        <p>Host: <span id="host"></span></p>
-                        <p>Kernel: <span id="kernel"></span></p>
-                        <p>CPU: <span id="CPU"></span></p>
-                        <p>Memory: <span id="memory"></span></p>
-                    </div>
-                </div>
+            <div class="neofetch">
+                <p style="height: auto; color: #B1E969;">root@<span id="machine-name"></span>~$: neofetch</p>
+                <p>OS: <span id="OS"></span></p>
+                <p>Host: <span id="host"></span></p>
+                <p>Kernel: <span id="kernel"></span></p>
+                <p>CPU: <span id="CPU"></span></p>
+                <p>Memory: <span id="memory"></span></p>
             </div>
         </div>
     </div>
