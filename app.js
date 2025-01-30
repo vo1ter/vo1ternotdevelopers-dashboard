@@ -13,7 +13,7 @@ let forceOs = {
 process.argv.forEach((val, index) => {
     if(val == "--port" && parseInt(process.argv[index + 1]) > 0 && parseInt(process.argv[index + 1]) < 65536) port = process.argv[index + 1];
     if(val == "--force-os") {
-        const osList = JSON.parse(fs.readFileSync("web/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
+        const osList = JSON.parse(fs.readFileSync("src/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
 
         Object.keys(osList).forEach((key) => {
             if(key == process.argv[index + 1].toLowerCase()) {
@@ -32,11 +32,11 @@ const server = app.listen(port, () => {
 
 const io = new Server(server);
 
-app.use(express.static('web'));
+app.use(express.static('src'));
 
 app.get('/', (req, res) => {
     res.set('Language', 'en');
-    res.sendFile(__dirname + '/web/index.html');
+    res.sendFile(__dirname + '/src/index.html');
 })
 
 setInterval(async () => {
@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
 
     socket.on("getAsciiArt", (distro) => {
         const os = distro.split(" ");
-        const osList = JSON.parse(fs.readFileSync("web/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
+        const osList = JSON.parse(fs.readFileSync("src/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
 
         os.forEach((element, index) => {
             os[index] = element.toLowerCase();
@@ -121,7 +121,7 @@ async function getServerUsage() {
 }
 
 async function getServerServices() {
-    const servicesData = JSON.parse(fs.readFileSync("web/static/json/services.json", { encoding: 'utf8', flag: 'r' }));
+    const servicesData = JSON.parse(fs.readFileSync("src/static/json/services.json", { encoding: 'utf8', flag: 'r' }));
     let servicesArray = [];
 
     Object.keys(servicesData).forEach((key) => {

@@ -22,7 +22,7 @@ Example: `node app.js --port 8000 --force-os arch`
 | Argument  | Value |  Comment |
 | ------------- | ------------- | ------------- |
 |  --port  |  int (1-65535)  |  -  |
-|  --force-os  |  string   |  Works only with systems from [systems.json](https://github.com/vo1ter/vo1ternotdevelopers-dashboard/blob/main/web/static/json/systems.json)!  |
+|  --force-os  |  string   |  Works only with systems from [systems.json](https://github.com/vo1ter/vo1ternotdevelopers-dashboard/blob/main/src/static/json/systems.json)!  |
 
 # NOTE!
 This application requires additional configuration if you are using reverse proxy like nginx/apache/etc.
