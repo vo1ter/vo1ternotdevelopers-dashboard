@@ -14,3 +14,7 @@ or you can use docker...
 2. Go to the cloned directory with `cd vo1ternotdevelopers-dashboard`
 3. Build docker image with `sudo docker buildx build -t dashboard .`
 4. Start your docker container with `sudo docker run --net=host -p 3000:3000 -it --restart always dashboard`
+
+# NOTE!
+This application requires additional configuration if you are using reverse proxy like nginx/apache/etc.
+[socket.io documentation](https://socket.io/docs/v4/reverse-proxy/)
