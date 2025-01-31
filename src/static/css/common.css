@@ -208,3 +208,18 @@ body {
     flex: 1;
     background-color: var(--in-foreground-color);
 }
+
+.copyright {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--in-foreground-color);
+    margin-top: auto;
+    padding: 1em;
+    border-radius: 10px;
+}
+
+a {
+    text-decoration: underline;
+}

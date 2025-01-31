@@ -79,6 +79,9 @@ socket.on("neofetchData", (data) => {
     fields.stats.ram.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
     fields.stats.cpu.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
     fields.stats.cpu.tempProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
+    document.querySelectorAll("a").forEach((element) => {
+        element.style.color = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
+    })
 
     for(let i = 0; i < data.cpu.cores; i++) {
         document.querySelector(".cpu-cores-container").innerHTML += `
