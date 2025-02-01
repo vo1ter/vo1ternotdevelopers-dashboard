@@ -44,6 +44,7 @@ setInterval(async () => {
     
     io.emit("usageData", await getServerUsage());
     io.emit("servicesUpdate", await getServerServices());
+    io.emit("dockerContainersUpdate", await getServerDockerContainers());
 }, 1000)
 
 io.on('connection', (socket) => {
@@ -82,6 +83,10 @@ io.on('connection', (socket) => {
     socket.on("getServices", async () => {
         socket.emit("services", await getServerServices());
     })
+
+    socket.on("getDockerContainers", async () => {
+        socket.emit("dockerContainers", await getServerDockerContainers());
+    });
 });
 
 async function getServerData() {
@@ -135,4 +140,45 @@ async function getServerServices() {
     .catch(err => {
         return err
     });
+}
+
+async function getServerDockerContainers() {
+    const containersData = JSON.parse(fs.readFileSync("src/static/json/containers.json", { encoding: 'utf8', flag: 'r' }));
+    let containersArray = [];
+
+    Object.keys(containersData).forEach((key) => {
+        containersArray.push({
+            name: containersData[key].name,
+            containerName: key,
+            icon: containersData[key].icon
+        });
+    })
+
+    const response = {};
+
+    response.dockerContainers = await si.dockerContainers("*")
+    .then(data => {
+        data.forEach((element, index) => {
+            containersArray.forEach((container) => {
+                if(element.name == container.containerName) {
+                    data[index].containerName = container.name;
+                    data[index].icon = container.icon;
+                }
+            })
+        })
+        return data
+    })
+    .catch(err => {
+        return err
+    });
+
+    response.dockerContainerStats = await si.dockerContainerStats("*")
+    .then(data => {
+        return data
+    })
+    .catch(err => {
+        return err
+    });
+
+    return response;
 }

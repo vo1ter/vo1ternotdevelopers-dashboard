@@ -90,7 +90,7 @@ body {
     padding: 1em
 }
 
-.services-container {
+.services-container, .docker-container {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -102,7 +102,7 @@ body {
     padding: 0 0.5em;
 }
 
-.services-container > .card {
+.services-container > .card, .docker-container > .card {
     background-color: var(--in-foreground-color);
     flex: 1 0 25%;
 }
@@ -125,6 +125,10 @@ body {
 
 .block:nth-child(2) {
     max-height: 10%;
+}
+
+.block:nth-child(1) > .big-card {
+    gap: 1em;
 }
 
 .card, .big-card {

@@ -1,0 +1,11 @@
+{
+    "cloudflare-dns-update": {
+        "name": "Cloudflare DNS Update",
+        "icon": "/static/images/services/cloudflare.svg"
+    },
+    "dashboard":
+    {
+        "name": "vo1ternotdeveloper's dashboard",
+        "icon": "/static/images/services/dashboard.svg"
+    }
+}

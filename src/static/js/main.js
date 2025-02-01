@@ -32,7 +32,7 @@ window.onload = async () => {
     socket.emit("getNeofetchData");
 
     let loaderInterval = setInterval(() => {
-        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%") {
+        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0 && document.querySelector(".docker-container").children.length > 0) {
             loader.animate(
                 [
                     { opacity: `1` },
@@ -94,6 +94,8 @@ socket.on("neofetchData", (data) => {
     socket.emit("getAsciiArt", data.osInfo.distro);
     loader.innerHTML = "Loading services..."
     socket.emit("getServices");
+    loader.innerHTML = "Loading docker containers..."
+    socket.emit("getDockerContainers");
     loader.innerHTML = "Loading usage stats...";
 })
 
@@ -135,6 +137,30 @@ socket.on("servicesUpdate", (data) => {
         document.querySelector(`#service-${service.name}-status`).innerHTML = service.running ? "Running" : "Stopped";
         document.querySelector(`#service-${service.name}-cpu-usage`).innerHTML = parseFloat(service.cpu).toFixed(2);
         document.querySelector(`#service-${service.name}-ram-usage`).innerHTML = parseFloat(service.mem).toFixed(2);
+    })
+})
+
+socket.on("dockerContainers", (data) => {
+    data.dockerContainers.forEach((container, index) => {
+        document.querySelector(".docker-container").innerHTML += `
+        <div class="card" id="docker-container-${container.name}">
+            <div class="card-desc">
+                <p>${container.containerName}</p>
+                <p>Status: <span id="docker-container-${container.name}-status">${container.finished == 0 ? "Running" : "Stopped"}</span></p>
+                <p>CPU Usage: <span id="docker-container-${container.name}-cpu-usage">${parseFloat(data.dockerContainerStats[index].cpuPercent).toFixed(2)}</span>%</p>
+                <p>RAM Usage: <span id="docker-container-${container.name}-ram-usage">${parseFloat(convertBytes(data.dockerContainerStats[index].memUsage, "MB")).toFixed(2)}</span> MB</p>
+            </div>
+        </div>
+        `;
+    })
+})
+
+socket.on("dockerContainersUpdate", (data) => {
+    if(document.querySelector(".docker-container").children.length == 0) return
+    data.dockerContainers.forEach((container, index) => {
+        document.querySelector(`#docker-container-${container.name}-status`).innerHTML = container.finished == 0 ? "Running" : "Stopped";
+        document.querySelector(`#docker-container-${container.name}-cpu-usage`).innerHTML = parseFloat(data.dockerContainerStats[index].cpuPercent).toFixed(2);
+        document.querySelector(`#docker-container-${container.name}-ram-usage`).innerHTML = parseFloat(convertBytes(data.dockerContainerStats[index].memUsage, "MB")).toFixed(2);
     })
 })
 

@@ -5,14 +5,14 @@
     },
     "docker": {
         "name": "Docker",
-        "icon": "/static/images/services/nginx.svg"
+        "icon": "/static/images/services/docker.svg"
     },
     "ssh": {
         "name": "SSH",
-        "icon": "/static/images/services/nginx.svg"
+        "icon": "/static/images/services/ssh.svg"
     },
     "ufw": {
         "name": "UFW",
-        "icon": "/static/images/services/nginx.svg"
+        "icon": "/static/images/services/ufw.svg"
     }
 }
