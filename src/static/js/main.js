@@ -32,7 +32,7 @@ window.onload = async () => {
     socket.emit("getNeofetchData");
 
     let loaderInterval = setInterval(() => {
-        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0 && document.querySelector(".docker-container").children.length > 0) {
+        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0) { // && document.querySelector(".docker-container").children.length > 0
             loader.animate(
                 [
                     { opacity: `1` },
