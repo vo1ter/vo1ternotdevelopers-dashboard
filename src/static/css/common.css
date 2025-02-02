@@ -245,6 +245,7 @@ a {
     flex-direction: row;
     width: fit-content;
     height: fit-content;
+    box-shadow: 8px 8px 10px rgba(0,0,0,0.5);
 }
 
 .notification > .notification-body {
