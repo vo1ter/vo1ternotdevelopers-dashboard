@@ -22,7 +22,7 @@ const fields = {
         ram: {
             usageProgress: document.querySelector("#ram-usage"),
             usageText: document.querySelector("#ram-usage-text"),
-            usageTextMb: document.querySelector("#ram-usage-text-mb"),
+            usageTextMiB: document.querySelector("#ram-usage-text-mb"),
         }
     }
 }
@@ -31,26 +31,7 @@ window.onload = async () => {
     loader.innerHTML = "Loading neofetch...";
     socket.emit("getNeofetchData");
 
-    let loaderInterval = setInterval(() => {
-        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0) { // && document.querySelector(".docker-container").children.length > 0
-            loader.animate(
-                [
-                    { opacity: `1` },
-                    { opacity: `0` },
-                ],
-                {
-                    duration: 350,
-                    easing: "linear",
-                    iterations: 1,
-                    fill: "forwards"
-                }
-            ).onfinish = () => {
-                loader.remove();
-            };
-
-            clearInterval(loaderInterval);
-        }
-    }, 500);
+    spawnLoader();
 
     let uptimeInterval = setInterval(() => {
         let uptime = fields.stats.uptime.getAttribute("data-seconds");
@@ -69,7 +50,7 @@ socket.on("neofetchData", (data) => {
     fields.neofetch.kernel.innerHTML = data.osInfo.kernel;
     fields.neofetch.os.innerHTML = `${data.osInfo.distro} ${data.osInfo.release}`;
     fields.neofetch.machineName.innerHTML = data.osInfo.hostname;
-    fields.neofetch.ram.innerHTML = `${parseInt(convertBytes(data.mem.used, "MB"))} MiB / ${parseInt(convertBytes(data.mem.total, "MB"))} MiB`;
+    fields.neofetch.ram.innerHTML = `${parseInt(convertBytes(data.mem.active, "MiB"))} MiB / ${parseInt(convertBytes(data.mem.total, "MiB"))} MiB`;
 
     fields.stats.uptime.innerHTML = converTime(data.time.uptime);
     fields.stats.uptime.setAttribute("data-seconds", parseInt(data.time.uptime));
@@ -111,12 +92,20 @@ socket.on("usageData", (data) => {
     fields.stats.cpu.tempText.innerHTML = `${parseFloat(data.cpuTemperature.main).toFixed(2)}°`;
     fields.stats.cpu.tempProgress.style.width = `${parseFloat((data.cpuTemperature.main * 100) / 100).toFixed(2)}%`;
     document.querySelectorAll(".cpu-core-fill").forEach((el, i) => el.style.height = `${parseFloat(data.currentLoad.cpus[i].load).toFixed(2)}%`);
-    fields.stats.ram.usageText.innerHTML = `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
-    fields.stats.ram.usageProgress.style.width= `${parseFloat((data.mem.used * 100) / data.mem.total).toFixed(2)}%`;
-    fields.stats.ram.usageTextMb.innerHTML = `${parseInt(convertBytes(data.mem.used, "MB"))}/${parseInt(convertBytes(data.mem.total, "MB"))} MB`;
+    fields.stats.ram.usageText.innerHTML = `${parseFloat((data.mem.active * 100) / data.mem.total).toFixed(2)}%`;
+    fields.stats.ram.usageProgress.style.width= `${parseFloat((data.mem.active * 100) / data.mem.total).toFixed(2)}%`;
+    fields.stats.ram.usageTextMiB.innerHTML = `${parseInt(convertBytes(data.mem.active, "MiB"))}/${parseInt(convertBytes(data.mem.total, "MiB"))} MiB`;
 })
 
+// #region Services 
 socket.on("services", (data) => {
+    if(data.length == undefined) {
+        let errorMessage = "Failed to load services!"
+        if(data.code == "ENOENT") errorMessage += "<br>File src/static/json/services.json not found;";
+        spawnNotification("Error", errorMessage);
+        return;
+    }
+
     data.forEach((service) => {
         document.querySelector(".services-container").innerHTML += `
         <div class="card" id="service-${service.name}">
@@ -139,16 +128,18 @@ socket.on("servicesUpdate", (data) => {
         document.querySelector(`#service-${service.name}-ram-usage`).innerHTML = parseFloat(service.mem).toFixed(2);
     })
 })
+// #endregion
 
+// #region Docker 
 socket.on("dockerContainers", (data) => {
-    data.dockerContainers.forEach((container, index) => {
+    data.forEach((container) => {
         document.querySelector(".docker-container").innerHTML += `
         <div class="card" id="docker-container-${container.name}">
             <div class="card-desc">
-                <p>${container.containerName}</p>
-                <p>Status: <span id="docker-container-${container.name}-status">${container.finished == 0 ? "Running" : "Stopped"}</span></p>
-                <p>CPU Usage: <span id="docker-container-${container.name}-cpu-usage">${parseFloat(data.dockerContainerStats[index].cpuPercent).toFixed(2)}</span>%</p>
-                <p>RAM Usage: <span id="docker-container-${container.name}-ram-usage">${parseFloat(convertBytes(data.dockerContainerStats[index].memUsage, "MB")).toFixed(2)}</span> MB</p>
+                <p>${container.name}</p>
+                <p>Status: <span id="docker-container-${container.containerName}-status">${(container.state).charAt(0).toUpperCase() + container.state.slice(1)}</span></p>
+                <p>CPU Usage: <span id="docker-container-${container.containerName}-cpu-usage">${parseFloat(container.cpu).toFixed(2)}</span>%</p>
+                <p>RAM Usage: <span id="docker-container-${container.containerName}-ram-usage">${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}</span> MiB</p>
             </div>
         </div>
         `;
@@ -157,23 +148,34 @@ socket.on("dockerContainers", (data) => {
 
 socket.on("dockerContainersUpdate", (data) => {
     if(document.querySelector(".docker-container").children.length == 0) return
-    data.dockerContainers.forEach((container, index) => {
-        document.querySelector(`#docker-container-${container.name}-status`).innerHTML = container.finished == 0 ? "Running" : "Stopped";
-        document.querySelector(`#docker-container-${container.name}-cpu-usage`).innerHTML = parseFloat(data.dockerContainerStats[index].cpuPercent).toFixed(2);
-        document.querySelector(`#docker-container-${container.name}-ram-usage`).innerHTML = parseFloat(convertBytes(data.dockerContainerStats[index].memUsage, "MB")).toFixed(2);
+    data.forEach((container) => {
+        document.querySelector(`#docker-container-${container.containerName}-status`).innerHTML = (container.state).charAt(0).toUpperCase() + container.state.slice(1);
+        document.querySelector(`#docker-container-${container.containerName}-cpu-usage`).innerHTML = parseFloat(container.cpu).toFixed(2);
+        document.querySelector(`#docker-container-${container.containerName}-ram-usage`).innerHTML = `${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}`;
     })
 })
+// #endregion
 
 function convertBytes(bytes, convertTo) {
     switch(convertTo) {
-        case "KB":
+        // Binary
+        case "KiB":
             return bytes / 1024;
-        case "MB":
+        case "MiB":
             return bytes / 1024 / 1024;
-        case "GB":
+        case "GiB":
             return bytes / 1024 / 1024 / 1024;
-        case "TB":
+        case "TiB":
             return bytes / 1024 / 1024 / 1024 / 1024;
+        // Decimal
+        case "KB":
+            return bytes / 1000;
+        case "MB":
+            return bytes / 1000 / 1000;
+        case "GB":
+            return bytes / 1000 / 1000 / 1000;
+        case "TB":
+            return bytes / 1000 / 1000 / 1000 / 1000;
         default: 
             return bytes
     }
@@ -187,4 +189,95 @@ function converTime(seconds) {
     if(hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
     else if(minutes > 0) return `${minutes}m ${seconds}s`; 
     else return `${seconds}s`;
+}
+
+function closeNotification() {
+    console.log("summoned")
+    document.querySelector(".notification").animate(
+        [
+            { transform: 'translateY(0)' },
+            { transform: 'translateY(-200%)' }
+        ],
+        {
+            duration: 500,
+            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
+            iterations: 1,
+            fill: 'forwards'
+        }
+    )
+    .onfinish = () => {
+        document.querySelector(".notification").style.opacity = "0";
+    }
+}
+
+function spawnNotification(title, body) {
+    document.querySelector(".notification").style.opacity = "1";
+    document.querySelector("#notification-body p").innerHTML = title;
+    document.querySelector("#notification-body div").innerHTML = body;
+
+    document.querySelector(".notification").animate(
+        [
+            { transform: 'translateY(-200%)' },
+            { transform: 'translateY(0)' }
+        ],
+        {
+            duration: 500,
+            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
+            iterations: 1,
+            fill: 'forwards'
+        }
+    )
+
+    // document.querySelector(".notification-progress").animate(
+    //     [
+    //         { 
+    //             width: '100%'
+    //         },
+    //         { 
+    //             width: '0%'
+    //         }
+    //     ],
+    //     {
+    //         duration: 5000,
+    //         easing: 'linear',
+    //         iterations: 1,
+    //         fill: 'forwards'
+    //     }
+    // )
+    // .onfinish = () => {
+    //     closeNotification();
+    // }
+
+    // let progress = 100;
+    // let backgroundInterval = setInterval(() => {
+    //     document.querySelector(".notification-progress").style.background = `linear-gradient(35deg, rgba(255,255,255,0.5) ${progress}%, rgba(250,250,250,0) ${progress}%)`;
+    //     progress -= 0.25;
+    //     if(progress <= 0) {
+    //         closeNotification();
+    //         clearInterval(backgroundInterval);
+    //     }
+    // }, 10);
+}
+
+async function spawnLoader() {
+    let loaderInterval = setInterval(() => {
+        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0) { // && document.querySelector(".docker-container").children.length > 0
+            loader.animate(
+                [
+                    { opacity: `1` },
+                    { opacity: `0` },
+                ],
+                {
+                    duration: 350,
+                    easing: "linear",
+                    iterations: 1,
+                    fill: "forwards"
+                }
+            ).onfinish = () => {
+                loader.remove();
+            };
+
+            clearInterval(loaderInterval);
+        }
+    }, 500);
 }

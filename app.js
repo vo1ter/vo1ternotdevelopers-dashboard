@@ -126,7 +126,14 @@ async function getServerUsage() {
 }
 
 async function getServerServices() {
-    const servicesData = JSON.parse(fs.readFileSync("src/static/json/services.json", { encoding: 'utf8', flag: 'r' }));
+    let servicesData;
+    try {
+        servicesData = JSON.parse(fs.readFileSync("src/static/json/services.json", { encoding: 'utf8', flag: 'r' }));
+    }
+    catch(err) {
+        return err;
+    }
+
     let servicesArray = [];
 
     Object.keys(servicesData).forEach((key) => {
@@ -143,7 +150,14 @@ async function getServerServices() {
 }
 
 async function getServerDockerContainers() {
-    const containersData = JSON.parse(fs.readFileSync("src/static/json/containers.json", { encoding: 'utf8', flag: 'r' }));
+    let containersData;
+    try {
+        containersData = JSON.parse(fs.readFileSync("src/static/json/containers.json", { encoding: 'utf8', flag: 'r' }));
+    }
+    catch(err) {
+        return err;
+    }
+
     let containersArray = [];
 
     Object.keys(containersData).forEach((key) => {
@@ -154,27 +168,41 @@ async function getServerDockerContainers() {
         });
     })
 
-    const response = {};
+    let response = [];
 
-    response.dockerContainers = await si.dockerContainers("*")
+    await si.dockerContainers("*")
     .then(data => {
-        data.forEach((element, index) => {
+        data.forEach((element) => {
             containersArray.forEach((container) => {
                 if(element.name == container.containerName) {
-                    data[index].containerName = container.name;
-                    data[index].icon = container.icon;
+                    let object = {
+                        id: element.id,
+                        name: container.name,
+                        containerName: container.containerName,
+                        icon: container.icon,
+                        state: element.state,
+                        cpu: 0,
+                        memory: 0
+                    };
+                    response.push(object);
                 }
             })
         })
-        return data
     })
     .catch(err => {
         return err
     });
 
-    response.dockerContainerStats = await si.dockerContainerStats("*")
+    await si.dockerContainerStats("*")
     .then(data => {
-        return data
+        data.forEach((element) => {
+            response.forEach((container) => {
+                if(element.id == container.id) {
+                    container.cpu = element.cpuPercent;
+                    container.memory = element.memoryStats;
+                }
+            })
+        })
     })
     .catch(err => {
         return err

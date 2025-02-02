@@ -10,9 +10,5 @@
     "ssh": {
         "name": "SSH",
         "icon": "/static/images/services/ssh.svg"
-    },
-    "ufw": {
-        "name": "UFW",
-        "icon": "/static/images/services/ufw.svg"
     }
 }

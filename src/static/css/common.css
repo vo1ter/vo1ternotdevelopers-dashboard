@@ -28,7 +28,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 3;
     background-color: var(--background-color);
 }
 
@@ -226,4 +225,58 @@ body {
 
 a {
     text-decoration: underline;
+}
+
+.notification {
+    opacity: 0;
+    position: absolute;
+    top: 1em;
+    right: 1em;
+    display: flex;
+    flex-direction: row;
+}
+
+.notification > #notification-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    background-color: var(--foreground-color);
+    padding: 1.5em;
+    border-radius: 10px;
+    gap: 0.5em;
+    z-index: 5;
+}
+
+.notification > .close-notification {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 0.25em;
+    right: 0.25em;
+    cursor: pointer;
+    border-radius: 100%;
+    width: 1em;
+    height: 1em;
+    z-index: 6;
+}
+
+.notification-progress {
+    content: "";
+    position: absolute;
+    top: -0.125em;
+    left: -0.125em;
+    width: calc(100% + 0.25em);
+    height: calc(100% + 0.25em);
+    background: linear-gradient(35deg, rgba(255,255,255,0.5) 100%, rgba(250,250,250,0) 100%);
+    border-radius: 10px;
+    z-index: 3;
+}
+
+.notification.red {
+    background-color: rgb(114, 32, 32);
+}
+
+.notification.green {
+    background-color: rgb(30, 99, 30);
 }
