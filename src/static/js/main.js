@@ -42,15 +42,15 @@ const fields = {
 }
 
 window.onload = async () => {
-    startup();
-    spawnLoader();
+    utils.startup();
+    loading.spawnLoader();
 
     let uptimeInterval = setInterval(() => {
         let uptime = fields.stats.uptime.getAttribute("data-seconds");
         
         if(uptime != "") {
             uptime++;
-            fields.stats.uptime.innerHTML = converTime(uptime);
+            fields.stats.uptime.innerHTML = utils.converTime(uptime);
             fields.stats.uptime.setAttribute("data-seconds", uptime);
         }
     }, 1000);
@@ -62,9 +62,9 @@ socket.on("neofetchData", async (data) => {
     fields.neofetch.kernel.innerHTML = data.osInfo.kernel;
     fields.neofetch.os.innerHTML = `${data.osInfo.distro} ${data.osInfo.release}`;
     fields.neofetch.machineName.innerHTML = data.osInfo.hostname;
-    fields.neofetch.ram.innerHTML = `${parseInt(convertBytes(data.mem.active, "MiB"))} MiB / ${parseInt(convertBytes(data.mem.total, "MiB"))} MiB`;
+    fields.neofetch.ram.innerHTML = `${parseInt(utils.convertBytes(data.mem.active, "MiB"))} MiB / ${parseInt(utils.convertBytes(data.mem.total, "MiB"))} MiB`;
 
-    fields.stats.uptime.innerHTML = converTime(data.time.uptime);
+    fields.stats.uptime.innerHTML = utils.converTime(data.time.uptime);
     fields.stats.uptime.setAttribute("data-seconds", parseInt(data.time.uptime));
 
     document.querySelector("#distro-logo").setAttribute("src", `static/images/logos/svg/${data.osInfo.logofile}.svg`)
@@ -102,7 +102,7 @@ socket.on("usageData", (data) => {
     document.querySelectorAll(".cpu-core-fill").forEach((el, i) => el.style.height = `${parseFloat(data.currentLoad.cpus[i].load).toFixed(2)}%`);
     fields.stats.ram.usageText.innerHTML = `${parseFloat((data.mem.active * 100) / data.mem.total).toFixed(2)}%`;
     fields.stats.ram.usageProgress.style.width= `${parseFloat((data.mem.active * 100) / data.mem.total).toFixed(2)}%`;
-    fields.stats.ram.usageTextMiB.innerHTML = `${parseInt(convertBytes(data.mem.active, "MiB"))}/${parseInt(convertBytes(data.mem.total, "MiB"))} MiB`;
+    fields.stats.ram.usageTextMiB.innerHTML = `${parseInt(utils.convertBytes(data.mem.active, "MiB"))}/${parseInt(utils.convertBytes(data.mem.total, "MiB"))} MiB`;
 
     if(!loaderProgress.done) loaderProgress.usageProgress = 1;
 })
@@ -114,7 +114,7 @@ socket.on("servicesUpdate", async (data) => {
         if(errorCounter.services < 1) {
             let errorMessage = "Failed to load services!"
             if(data.code == "ENOENT") errorMessage += "<br>File src/static/json/services.json not found or it is empty;";
-            spawnNotification("Error", errorMessage, 5);
+            notification.spawnNotification("Error", errorMessage, 5);
             errorCounter.services++;
         }
         return;
@@ -153,7 +153,7 @@ socket.on("dockerContainersUpdate", async (data) => {
         if(errorCounter.docker < 1) {
             let errorMessage = "Failed to load docker containers!"
             if(data.code == "ENOENT") errorMessage += "<br>File src/static/json/containers.json not found or it is empty;";
-            spawnNotification("Error", errorMessage, 5);
+            notification.spawnNotification("Error", errorMessage, 5);
             errorCounter.docker++;
         }
         return;
@@ -167,7 +167,7 @@ socket.on("dockerContainersUpdate", async (data) => {
                     <p>${container.name}</p>
                     <p>Status: <span id="docker-container-${container.containerName}-status">${(container.state).charAt(0).toUpperCase() + container.state.slice(1)}</span></p>
                     <p>CPU Usage: <span id="docker-container-${container.containerName}-cpu-usage">${parseFloat(container.cpu).toFixed(2)}</span>%</p>
-                    <p>RAM Usage: <span id="docker-container-${container.containerName}-ram-usage">${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}</span> MiB</p>
+                    <p>RAM Usage: <span id="docker-container-${container.containerName}-ram-usage">${parseFloat(utils.convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}</span> MiB</p>
                 </div>
             </div>
             `;
@@ -177,176 +177,10 @@ socket.on("dockerContainersUpdate", async (data) => {
         data.forEach((container) => {
             document.querySelector(`#docker-container-${container.containerName}-status`).innerHTML = (container.state).charAt(0).toUpperCase() + container.state.slice(1);
             document.querySelector(`#docker-container-${container.containerName}-cpu-usage`).innerHTML = parseFloat(container.cpu).toFixed(2);
-            document.querySelector(`#docker-container-${container.containerName}-ram-usage`).innerHTML = `${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}`;
+            document.querySelector(`#docker-container-${container.containerName}-ram-usage`).innerHTML = `${parseFloat(utils.convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}`;
         })
     }
 
     if(!loaderProgress.done) loaderProgress.dockerProgress = 1;
 })
-// #endregion
-
-// #region Notification
-function spawnNotification(title, body, animationDuration = 5) {
-    const newNotificationId = document.querySelectorAll(".notification").length + 1;
-    document.querySelector(".notification-container").insertAdjacentHTML("beforeend", `
-    <div class="notification" id="notification-${newNotificationId}">
-        <div class="notification-progress" id="notification-progress-${newNotificationId}"></div>
-        <div class="notification-body" id="notification-body-${newNotificationId}">
-            <p>Title</p>
-            <div>Body</div>
-        </div>
-        <div class="close-notification" onclick="closeNotification(${newNotificationId})">X</div>
-    </div>
-    `);
-    
-    const notification = document.querySelector(`#notification-${newNotificationId}`);
-    const progress = document.querySelector(`#notification-progress-${newNotificationId}`);
-    const bodyElement = document.querySelector(`#notification-body-${newNotificationId}`);
-
-    bodyElement.querySelector("p").innerHTML = title;
-    bodyElement.querySelector("div").innerHTML = body;
-
-    notification.style.opacity = 1;
-
-    // Slide in animation
-    notification.animate(
-        [
-            { transform: 'translateY(-400%)' },
-            { transform: 'translateY(0)' }
-        ],
-        {
-            duration: 1000,
-            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
-            iterations: 1,
-            fill: 'forwards'
-        }
-    );
-
-    // Animate progress
-    setTimeout(() => {
-        progress.animate(
-            [
-                { backgroundPosition: '0% 0' },
-                { backgroundPosition: '100% 0' }
-            ],
-            {
-                duration: animationDuration * 1000,
-                easing: 'linear',
-                iterations: 1,
-                fill: 'forwards'
-            }
-        )
-        .onfinish = () => {
-            closeNotification(newNotificationId);
-        };
-    }, 600)
-}
-
-function closeNotification(notificationID) {
-    const notification = document.querySelector("#notification-" + notificationID);
-    notification.animate(
-        [
-            { transform: 'translateY(0)' },
-            { transform: 'translateY(-400%)' }
-        ],
-        {
-            duration: 500,
-            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
-            iterations: 1,
-            fill: 'forwards'
-        }
-    )
-    .onfinish = () => {
-        notification.remove();
-    }
-}
-// #endregion
-
-// #region Loader
-async function spawnLoader() {
-    let loaderInterval = setInterval(() => {
-        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0) { // && document.querySelector(".docker-container").children.length > 0
-            closeLoader();
-
-            clearInterval(loaderInterval);
-        }
-    }, 1000);
-}
-
-async function closeLoader() {
-    loader.animate(
-        [
-            { opacity: `1` },
-            { opacity: `0` },
-        ],
-        {
-            duration: 350,
-            easing: "linear",
-            iterations: 1,
-            fill: "forwards"
-        }
-    ).onfinish = () => {
-        loader.remove();
-    };
-}
-// #endregion
-
-// #region Utils
-function convertBytes(bytes, convertTo) {
-    switch(convertTo) {
-        // Binary
-        case "KiB":
-            return bytes / 1024;
-        case "MiB":
-            return bytes / 1024 / 1024;
-        case "GiB":
-            return bytes / 1024 / 1024 / 1024;
-        case "TiB":
-            return bytes / 1024 / 1024 / 1024 / 1024;
-        // Decimal
-        case "KB":
-            return bytes / 1000;
-        case "MB":
-            return bytes / 1000 / 1000;
-        case "GB":
-            return bytes / 1000 / 1000 / 1000;
-        case "TB":
-            return bytes / 1000 / 1000 / 1000 / 1000;
-        default: 
-            return bytes
-    }
-}
-
-function converTime(seconds) {
-    var hours = Math.floor(seconds / 3600);
-    var minutes = Math.floor((seconds - (hours * 3600)) / 60);
-    var seconds = parseInt(seconds - (hours * 3600) - (minutes * 60));
-
-    if(hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-    else if(minutes > 0) return `${minutes}m ${seconds}s`; 
-    else return `${seconds}s`;
-}
-
-function startup() {
-    loader.innerHTML = "Loading neofetch...";
-    socket.emit("getNeofetchData");
-
-    let interval = setInterval(() => {
-        if(loaderProgress.neofetchProgress >= 1 && loaderProgress.servicesProgress < 1) {
-            loader.innerHTML = "Loading services..."
-        }
-        else if(loaderProgress.servicesProgress >= 1 && loaderProgress.dockerProgress < 1) {
-            loader.innerHTML = "Loading docker containers...";
-        }
-        else if(loaderProgress.dockerProgress >= 1 && loaderProgress.usageProgress < 1) {
-            loader.innerHTML = "Loading usage stats...";
-        }
-
-        if(loaderProgress.servicesProgress >= 1 && loaderProgress.dockerProgress >= 1 && loaderProgress.usageProgress >= 1 && loaderProgress.neofetchProgress >= 1) {
-            loaderProgress.done = true;
-            closeLoader();
-            clearInterval(interval);
-        }
-    }, 500)
-}
 // #endregion
