@@ -80,14 +80,6 @@ io.on('connection', (socket) => {
 
         socket.emit("asciiArt", lookupResult);
     })
-
-    socket.on("getServices", async () => {
-        socket.emit("services", await getServerServices());
-    })
-
-    socket.on("getDockerContainers", async () => {
-        socket.emit("dockerContainers", await getServerDockerContainers());
-    });
 });
 
 async function getServerData() {

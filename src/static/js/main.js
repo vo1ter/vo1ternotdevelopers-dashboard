@@ -2,6 +2,20 @@ const socket = io();
 const bodyStyles = window.getComputedStyle(document.body);
 const loader = document.querySelector(".loader");
 
+let loaderProgress = {
+    done: false,
+    neofetchProgress: 0,
+    servicesProgress: 0,
+    dockerProgress: 0,
+    usageProgress: 0
+};
+
+let errorCounter = {
+    neofetch: 0,
+    services: 0,
+    docker: 0
+}
+
 const fields = {
     neofetch: {
         cpu: document.querySelector("#CPU"),
@@ -28,9 +42,7 @@ const fields = {
 }
 
 window.onload = async () => {
-    loader.innerHTML = "Loading neofetch...";
-    socket.emit("getNeofetchData");
-
+    startup();
     spawnLoader();
 
     let uptimeInterval = setInterval(() => {
@@ -44,7 +56,7 @@ window.onload = async () => {
     }, 1000);
 }
 
-socket.on("neofetchData", (data) => {
+socket.on("neofetchData", async (data) => {
     fields.neofetch.cpu.innerHTML = `${data.cpu.manufacturer} ${data.cpu.brand}`;
     fields.neofetch.host.innerHTML = data.system.model;
     fields.neofetch.kernel.innerHTML = data.osInfo.kernel;
@@ -71,13 +83,9 @@ socket.on("neofetchData", (data) => {
         </div>`;
     }
 
-    loader.innerHTML = "Loading ascii art...";
     socket.emit("getAsciiArt", data.osInfo.distro);
-    loader.innerHTML = "Loading services..."
-    socket.emit("getServices");
-    loader.innerHTML = "Loading docker containers..."
-    socket.emit("getDockerContainers");
-    loader.innerHTML = "Loading usage stats...";
+
+    if(!loaderProgress.done) loaderProgress.neofetchProgress = 1;
 })
 
 socket.on("asciiArt", async (data) => {
@@ -95,67 +103,195 @@ socket.on("usageData", (data) => {
     fields.stats.ram.usageText.innerHTML = `${parseFloat((data.mem.active * 100) / data.mem.total).toFixed(2)}%`;
     fields.stats.ram.usageProgress.style.width= `${parseFloat((data.mem.active * 100) / data.mem.total).toFixed(2)}%`;
     fields.stats.ram.usageTextMiB.innerHTML = `${parseInt(convertBytes(data.mem.active, "MiB"))}/${parseInt(convertBytes(data.mem.total, "MiB"))} MiB`;
+
+    if(!loaderProgress.done) loaderProgress.usageProgress = 1;
 })
 
 // #region Services 
-socket.on("services", (data) => {
-    if(data.length == undefined) {
-        let errorMessage = "Failed to load services!"
-        if(data.code == "ENOENT") errorMessage += "<br>File src/static/json/services.json not found;";
-        spawnNotification("Error", errorMessage, 500);
+socket.on("servicesUpdate", async (data) => {
+    if(data.length == undefined || data.length == 0) {
+        if(!loaderProgress.done) loaderProgress.servicesProgress = 1;
+        if(errorCounter.services < 1) {
+            let errorMessage = "Failed to load services!"
+            if(data.code == "ENOENT") errorMessage += "<br>File src/static/json/services.json not found or it is empty;";
+            spawnNotification("Error", errorMessage, 5);
+            errorCounter.services++;
+        }
         return;
     }
 
-    data.forEach((service) => {
-        document.querySelector(".services-container").innerHTML += `
-        <div class="card" id="service-${service.name}">
-            <div class="card-desc">
-                <p>${service.name}</p>
-                <p>Status: <span id="service-${service.name}-status">${service.running ? "Running" : "Stopped"}</span></p>
-                <p>CPU Usage: <span id="service-${service.name}-cpu-usage">${parseFloat(service.cpu).toFixed(2)}</span>%</p>
-                <p>RAM Usage: <span id="service-${service.name}-ram-usage">${parseFloat(service.mem).toFixed(2)}</span>%</p>
+    if(document.querySelector(".services-container").children.length == 0) {
+        await data.forEach((service) => {
+            document.querySelector(".services-container").innerHTML += `
+            <div class="card" id="service-${service.name}">
+                <div class="card-desc">
+                    <p>${service.name}</p>
+                    <p>Status: <span id="service-${service.name}-status">${service.running ? "Running" : "Stopped"}</span></p>
+                    <p>CPU Usage: <span id="service-${service.name}-cpu-usage">${parseFloat(service.cpu).toFixed(2)}</span>%</p>
+                    <p>RAM Usage: <span id="service-${service.name}-ram-usage">${parseFloat(service.mem).toFixed(2)}</span>%</p>
+                </div>
             </div>
-        </div>
-        `;
-    })
-})
+            `;
+        })
+    }
+    else {
+        data.forEach((service) => {
+            document.querySelector(`#service-${service.name}-status`).innerHTML = service.running ? "Running" : "Stopped";
+            document.querySelector(`#service-${service.name}-cpu-usage`).innerHTML = parseFloat(service.cpu).toFixed(2);
+            document.querySelector(`#service-${service.name}-ram-usage`).innerHTML = parseFloat(service.mem).toFixed(2);
+        })
+    }
 
-socket.on("servicesUpdate", (data) => {
-    if(document.querySelector(".services-container").children.length == 0) return
-    data.forEach((service) => {
-        document.querySelector(`#service-${service.name}-status`).innerHTML = service.running ? "Running" : "Stopped";
-        document.querySelector(`#service-${service.name}-cpu-usage`).innerHTML = parseFloat(service.cpu).toFixed(2);
-        document.querySelector(`#service-${service.name}-ram-usage`).innerHTML = parseFloat(service.mem).toFixed(2);
-    })
+    if(!loaderProgress.done) loaderProgress.servicesProgress = 1;
 })
 // #endregion
 
 // #region Docker 
-socket.on("dockerContainers", (data) => {
-    data.forEach((container) => {
-        document.querySelector(".docker-container").innerHTML += `
-        <div class="card" id="docker-container-${container.name}">
-            <div class="card-desc">
-                <p>${container.name}</p>
-                <p>Status: <span id="docker-container-${container.containerName}-status">${(container.state).charAt(0).toUpperCase() + container.state.slice(1)}</span></p>
-                <p>CPU Usage: <span id="docker-container-${container.containerName}-cpu-usage">${parseFloat(container.cpu).toFixed(2)}</span>%</p>
-                <p>RAM Usage: <span id="docker-container-${container.containerName}-ram-usage">${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}</span> MiB</p>
-            </div>
-        </div>
-        `;
-    })
-})
+socket.on("dockerContainersUpdate", async (data) => {
+    if(data.length == undefined || data.length == 0)  {
+        if(!loaderProgress.done) loaderProgress.dockerProgress = 1;
+        if(errorCounter.docker < 1) {
+            let errorMessage = "Failed to load docker containers!"
+            if(data.code == "ENOENT") errorMessage += "<br>File src/static/json/containers.json not found or it is empty;";
+            spawnNotification("Error", errorMessage, 5);
+            errorCounter.docker++;
+        }
+        return;
+    }
 
-socket.on("dockerContainersUpdate", (data) => {
-    if(document.querySelector(".docker-container").children.length == 0) return
-    data.forEach((container) => {
-        document.querySelector(`#docker-container-${container.containerName}-status`).innerHTML = (container.state).charAt(0).toUpperCase() + container.state.slice(1);
-        document.querySelector(`#docker-container-${container.containerName}-cpu-usage`).innerHTML = parseFloat(container.cpu).toFixed(2);
-        document.querySelector(`#docker-container-${container.containerName}-ram-usage`).innerHTML = `${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}`;
-    })
+    if(document.querySelector(".docker-container").children.length == 0) {
+        await data.forEach((container) => {
+            document.querySelector(".docker-container").innerHTML += `
+            <div class="card" id="docker-container-${container.name}">
+                <div class="card-desc">
+                    <p>${container.name}</p>
+                    <p>Status: <span id="docker-container-${container.containerName}-status">${(container.state).charAt(0).toUpperCase() + container.state.slice(1)}</span></p>
+                    <p>CPU Usage: <span id="docker-container-${container.containerName}-cpu-usage">${parseFloat(container.cpu).toFixed(2)}</span>%</p>
+                    <p>RAM Usage: <span id="docker-container-${container.containerName}-ram-usage">${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}</span> MiB</p>
+                </div>
+            </div>
+            `;
+        })
+    }
+    else {
+        data.forEach((container) => {
+            document.querySelector(`#docker-container-${container.containerName}-status`).innerHTML = (container.state).charAt(0).toUpperCase() + container.state.slice(1);
+            document.querySelector(`#docker-container-${container.containerName}-cpu-usage`).innerHTML = parseFloat(container.cpu).toFixed(2);
+            document.querySelector(`#docker-container-${container.containerName}-ram-usage`).innerHTML = `${parseFloat(convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}`;
+        })
+    }
+
+    if(!loaderProgress.done) loaderProgress.dockerProgress = 1;
 })
 // #endregion
 
+// #region Notification
+function spawnNotification(title, body, animationDuration = 5) {
+    const newNotificationId = document.querySelectorAll(".notification").length + 1;
+    document.querySelector(".notification-container").insertAdjacentHTML("beforeend", `
+    <div class="notification" id="notification-${newNotificationId}">
+        <div class="notification-progress" id="notification-progress-${newNotificationId}"></div>
+        <div class="notification-body" id="notification-body-${newNotificationId}">
+            <p>Title</p>
+            <div>Body</div>
+        </div>
+        <div class="close-notification" onclick="closeNotification(${newNotificationId})">X</div>
+    </div>
+    `);
+    
+    const notification = document.querySelector(`#notification-${newNotificationId}`);
+    const progress = document.querySelector(`#notification-progress-${newNotificationId}`);
+    const bodyElement = document.querySelector(`#notification-body-${newNotificationId}`);
+
+    bodyElement.querySelector("p").innerHTML = title;
+    bodyElement.querySelector("div").innerHTML = body;
+
+    notification.style.opacity = 1;
+
+    // Slide in animation
+    notification.animate(
+        [
+            { transform: 'translateY(-400%)' },
+            { transform: 'translateY(0)' }
+        ],
+        {
+            duration: 1000,
+            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
+            iterations: 1,
+            fill: 'forwards'
+        }
+    );
+
+    // Animate progress
+    setTimeout(() => {
+        progress.animate(
+            [
+                { backgroundPosition: '0% 0' },
+                { backgroundPosition: '100% 0' }
+            ],
+            {
+                duration: animationDuration * 1000,
+                easing: 'linear',
+                iterations: 1,
+                fill: 'forwards'
+            }
+        )
+        .onfinish = () => {
+            closeNotification(newNotificationId);
+        };
+    }, 600)
+}
+
+function closeNotification(notificationID) {
+    const notification = document.querySelector("#notification-" + notificationID);
+    notification.animate(
+        [
+            { transform: 'translateY(0)' },
+            { transform: 'translateY(-400%)' }
+        ],
+        {
+            duration: 500,
+            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
+            iterations: 1,
+            fill: 'forwards'
+        }
+    )
+    .onfinish = () => {
+        notification.remove();
+    }
+}
+// #endregion
+
+// #region Loader
+async function spawnLoader() {
+    let loaderInterval = setInterval(() => {
+        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0) { // && document.querySelector(".docker-container").children.length > 0
+            closeLoader();
+
+            clearInterval(loaderInterval);
+        }
+    }, 1000);
+}
+
+async function closeLoader() {
+    loader.animate(
+        [
+            { opacity: `1` },
+            { opacity: `0` },
+        ],
+        {
+            duration: 350,
+            easing: "linear",
+            iterations: 1,
+            fill: "forwards"
+        }
+    ).onfinish = () => {
+        loader.remove();
+    };
+}
+// #endregion
+
+// #region Utils
 function convertBytes(bytes, convertTo) {
     switch(convertTo) {
         // Binary
@@ -191,90 +327,26 @@ function converTime(seconds) {
     else return `${seconds}s`;
 }
 
-function closeNotification() {
-    document.querySelector(".notification").animate(
-        [
-            { transform: 'translateY(0)' },
-            { transform: 'translateY(-200%)' }
-        ],
-        {
-            duration: 500,
-            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
-            iterations: 1,
-            fill: 'forwards'
+function startup() {
+    loader.innerHTML = "Loading neofetch...";
+    socket.emit("getNeofetchData");
+
+    let interval = setInterval(() => {
+        if(loaderProgress.neofetchProgress >= 1 && loaderProgress.servicesProgress < 1) {
+            loader.innerHTML = "Loading services..."
         }
-    )
-    .onfinish = () => {
-        document.querySelector(".notification").style.opacity = "0";
-    }
+        else if(loaderProgress.servicesProgress >= 1 && loaderProgress.dockerProgress < 1) {
+            loader.innerHTML = "Loading docker containers...";
+        }
+        else if(loaderProgress.dockerProgress >= 1 && loaderProgress.usageProgress < 1) {
+            loader.innerHTML = "Loading usage stats...";
+        }
+
+        if(loaderProgress.servicesProgress >= 1 && loaderProgress.dockerProgress >= 1 && loaderProgress.usageProgress >= 1 && loaderProgress.neofetchProgress >= 1) {
+            loaderProgress.done = true;
+            closeLoader();
+            clearInterval(interval);
+        }
+    }, 500)
 }
-
-function spawnNotification(title, body, animationDuration = 500) {
-    const notification = document.querySelector(".notification");
-    const progress = document.querySelector(".notification-progress");
-
-    // Reset and show notification
-    notification.style.opacity = "1";
-    notification.style.transform = "translateY(-200%)";
-    document.querySelector("#notification-body p").innerHTML = title;
-    document.querySelector("#notification-body div").innerHTML = body;
-
-    // Slide in animation
-    notification.animate(
-        [
-            { transform: 'translateY(-200%)' },
-            { transform: 'translateY(0)' }
-        ],
-        {
-            duration: animationDuration,
-            easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
-            iterations: 1,
-            fill: 'forwards'
-        }
-    );
-
-    // Set up progress bar
-    progress.style.background = 'linear-gradient(to right, rgba(255,255,255,0.5) 50%, rgba(250,250,250,0) 50%)';
-    progress.style.backgroundSize = '200% 100%';
-    progress.style.backgroundPosition = '100% 0';
-
-    // Animate progress
-    progress.animate(
-        [
-            { backgroundPosition: '0% 0' },
-            { backgroundPosition: '100% 0' }
-        ],
-        {
-            duration: animationDuration * 10,
-            easing: 'linear',
-            iterations: 1,
-            fill: 'forwards'
-        }
-    )
-        .onfinish = () => {
-            closeNotification();
-        };
-}
-
-async function spawnLoader() {
-    let loaderInterval = setInterval(() => {
-        if(fields.neofetch.cpu.innerHTML != "" && fields.stats.cpu.usageText.innerHTML != "0%" && document.querySelector(".services-container").children.length > 0) { // && document.querySelector(".docker-container").children.length > 0
-            loader.animate(
-                [
-                    { opacity: `1` },
-                    { opacity: `0` },
-                ],
-                {
-                    duration: 350,
-                    easing: "linear",
-                    iterations: 1,
-                    fill: "forwards"
-                }
-            ).onfinish = () => {
-                loader.remove();
-            };
-
-            clearInterval(loaderInterval);
-        }
-    }, 500);
-}
+// #endregion
