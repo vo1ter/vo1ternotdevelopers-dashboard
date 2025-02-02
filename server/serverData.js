@@ -15,7 +15,22 @@ async function getServerData(forceOs = { use: false }) {
         if (forceOs.use) {
             data.osInfo.logofile = forceOs.forceTo;
             data.osInfo.distro = forceOs.name;
+            data.osInfo.ascii = "";
         }
+
+        const os = data.osInfo.distro.split(" ");
+        const osList = JSON.parse(fs.readFileSync("src/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
+
+        os.forEach((element, index) => {
+            os[index] = element.toLowerCase();
+        })
+
+        Object.keys(osList).forEach((key) => {
+            if(os.includes(key)) {
+                data.osInfo.ascii = osList[key].ascii;
+            }
+        })
+
         return data;
     } catch (err) {
         throw new Error(`Failed to get server data: ${err.message}`);

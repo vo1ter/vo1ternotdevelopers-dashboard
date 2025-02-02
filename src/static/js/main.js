@@ -68,6 +68,7 @@ socket.on("neofetchData", async (data) => {
     fields.stats.uptime.setAttribute("data-seconds", parseInt(data.time.uptime));
 
     document.querySelector("#distro-logo").setAttribute("src", `static/images/logos/svg/${data.osInfo.logofile}.svg`)
+    document.querySelector("#ascii-art-text").innerHTML = data.osInfo.ascii;
 
     fields.stats.ram.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
     fields.stats.cpu.usageProgress.style.backgroundColor = bodyStyles.getPropertyValue(`--${data.osInfo.logofile}-color`);
@@ -83,15 +84,7 @@ socket.on("neofetchData", async (data) => {
         </div>`;
     }
 
-    socket.emit("getAsciiArt", data.osInfo.distro);
-
     if(!loaderProgress.done) loaderProgress.neofetchProgress = 1;
-})
-
-socket.on("asciiArt", async (data) => {
-    if(await data.success == true) {
-        document.querySelector("#ascii-art-text").innerHTML = data.ascii;
-    }
 })
 
 socket.on("usageData", (data) => {
@@ -167,7 +160,7 @@ socket.on("dockerContainersUpdate", async (data) => {
                     <p>${container.name}</p>
                     <p>Status: <span id="docker-container-${container.containerName}-status">${(container.state).charAt(0).toUpperCase() + container.state.slice(1)}</span></p>
                     <p>CPU Usage: <span id="docker-container-${container.containerName}-cpu-usage">${parseFloat(container.cpu).toFixed(2)}</span>%</p>
-                    <p>RAM Usage: <span id="docker-container-${container.containerName}-ram-usage">${parseFloat(utils.convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}</span> MiB</p>
+                    <p>RAM Usage: <span id="docker-container-${container.containerName}-ram-usage">${parseFloat(utils.convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(utils.convertBytes(container.memory.limit, "MiB"))}</span> MiB</p>
                 </div>
             </div>
             `;
@@ -177,7 +170,7 @@ socket.on("dockerContainersUpdate", async (data) => {
         data.forEach((container) => {
             document.querySelector(`#docker-container-${container.containerName}-status`).innerHTML = (container.state).charAt(0).toUpperCase() + container.state.slice(1);
             document.querySelector(`#docker-container-${container.containerName}-cpu-usage`).innerHTML = parseFloat(container.cpu).toFixed(2);
-            document.querySelector(`#docker-container-${container.containerName}-ram-usage`).innerHTML = `${parseFloat(utils.convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(convertBytes(container.memory.limit, "MiB"))}`;
+            document.querySelector(`#docker-container-${container.containerName}-ram-usage`).innerHTML = `${parseFloat(utils.convertBytes(container.memory.usage, "MiB")).toFixed(2)}/${parseInt(utils.convertBytes(container.memory.limit, "MiB"))}`;
         })
     }
 

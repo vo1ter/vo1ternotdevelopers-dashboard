@@ -294,3 +294,61 @@ a {
 .notification.green {
     background-color: rgb(30, 99, 30);
 }
+
+pre {
+    user-select: none;
+}
+
+@media only screen and (max-width: 900px) {
+    body {
+        overflow: auto;
+    }
+
+    .container {
+        height: auto;
+    }
+
+    .background-dim {
+        display: none;
+    }
+
+    .background {
+        display: none;
+    }
+
+    .block {
+        flex-direction: column;
+    }
+
+    .block:nth-child(1) {
+        max-width: 100%;
+    }
+
+    .block:nth-child(1) > .big-card:nth-child(2) {
+        flex-direction: column;
+    }
+
+    .block:nth-child(1) > .big-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .block:nth-child(2) { 
+        max-height: 100%;
+    }
+
+    .cpu-cores-container {
+        min-height: 4vh;
+    }
+
+    .copyright {
+        text-align: center;
+        width: calc(100% - 2.5em);
+    }
+
+    .services-container, .docker-container {
+        width: calc(100% - 0.5em);
+    }
+}

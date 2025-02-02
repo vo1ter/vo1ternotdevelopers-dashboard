@@ -58,28 +58,4 @@ io.on('connection', (socket) => {
     socket.on("getUsage", async () => {
         socket.emit("usageData", await serverData.getServerUsage());
     })
-
-    socket.on("getAsciiArt", (distro) => {
-        const os = distro.split(" ");
-        const osList = JSON.parse(fs.readFileSync("src/static/json/systems.json", { encoding: 'utf8', flag: 'r' }));
-
-        os.forEach((element, index) => {
-            os[index] = element.toLowerCase();
-        })
-
-        let lookupResult = {
-            success: false
-        };
-
-        Object.keys(osList).forEach((key) => {
-            if(os.includes(key)) {
-                return lookupResult = {
-                    success: true,
-                    ascii: osList[key].ascii
-                }
-            }
-        })
-
-        socket.emit("asciiArt", lookupResult);
-    })
 });
