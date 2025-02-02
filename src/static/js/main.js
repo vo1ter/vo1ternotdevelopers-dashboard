@@ -102,7 +102,7 @@ socket.on("services", (data) => {
     if(data.length == undefined) {
         let errorMessage = "Failed to load services!"
         if(data.code == "ENOENT") errorMessage += "<br>File src/static/json/services.json not found;";
-        spawnNotification("Error", errorMessage);
+        spawnNotification("Error", errorMessage, 500);
         return;
     }
 
@@ -192,7 +192,6 @@ function converTime(seconds) {
 }
 
 function closeNotification() {
-    console.log("summoned")
     document.querySelector(".notification").animate(
         [
             { transform: 'translateY(0)' },
@@ -210,53 +209,51 @@ function closeNotification() {
     }
 }
 
-function spawnNotification(title, body) {
-    document.querySelector(".notification").style.opacity = "1";
+function spawnNotification(title, body, animationDuration = 500) {
+    const notification = document.querySelector(".notification");
+    const progress = document.querySelector(".notification-progress");
+
+    // Reset and show notification
+    notification.style.opacity = "1";
+    notification.style.transform = "translateY(-200%)";
     document.querySelector("#notification-body p").innerHTML = title;
     document.querySelector("#notification-body div").innerHTML = body;
 
-    document.querySelector(".notification").animate(
+    // Slide in animation
+    notification.animate(
         [
             { transform: 'translateY(-200%)' },
             { transform: 'translateY(0)' }
         ],
         {
-            duration: 500,
+            duration: animationDuration,
             easing: 'cubic-bezier(0.85, 0, 0.15, 1)',
             iterations: 1,
             fill: 'forwards'
         }
+    );
+
+    // Set up progress bar
+    progress.style.background = 'linear-gradient(to right, rgba(255,255,255,0.5) 50%, rgba(250,250,250,0) 50%)';
+    progress.style.backgroundSize = '200% 100%';
+    progress.style.backgroundPosition = '100% 0';
+
+    // Animate progress
+    progress.animate(
+        [
+            { backgroundPosition: '0% 0' },
+            { backgroundPosition: '100% 0' }
+        ],
+        {
+            duration: animationDuration * 10,
+            easing: 'linear',
+            iterations: 1,
+            fill: 'forwards'
+        }
     )
-
-    // document.querySelector(".notification-progress").animate(
-    //     [
-    //         { 
-    //             width: '100%'
-    //         },
-    //         { 
-    //             width: '0%'
-    //         }
-    //     ],
-    //     {
-    //         duration: 5000,
-    //         easing: 'linear',
-    //         iterations: 1,
-    //         fill: 'forwards'
-    //     }
-    // )
-    // .onfinish = () => {
-    //     closeNotification();
-    // }
-
-    // let progress = 100;
-    // let backgroundInterval = setInterval(() => {
-    //     document.querySelector(".notification-progress").style.background = `linear-gradient(35deg, rgba(255,255,255,0.5) ${progress}%, rgba(250,250,250,0) ${progress}%)`;
-    //     progress -= 0.25;
-    //     if(progress <= 0) {
-    //         closeNotification();
-    //         clearInterval(backgroundInterval);
-    //     }
-    // }, 10);
+        .onfinish = () => {
+            closeNotification();
+        };
 }
 
 async function spawnLoader() {

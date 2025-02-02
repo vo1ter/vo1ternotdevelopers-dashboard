@@ -28,6 +28,7 @@ process.argv.forEach((val, index) => {
 
 const server = app.listen(port, () => {
     console.log(`Dashboard listening on port ${port}`)
+    console.log(`Website available on http://localhost:${port}`)
 })
 
 const io = new Server(server);
