@@ -237,8 +237,6 @@ a {
     top: 1em;
     right: 1em;
     z-index: 10;
-    width: calc(100% - 2em);
-    height: calc(100% - 2em);
 }
 
 .notification {
