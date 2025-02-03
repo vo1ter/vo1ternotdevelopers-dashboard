@@ -236,6 +236,8 @@ a {
     gap: 1em;
     top: 1em;
     right: 1em;
+    max-width: 400px;
+    width: calc(100% - 2em);
     z-index: 10;
 }
 
@@ -243,7 +245,7 @@ a {
     opacity: 0;
     display: flex;
     flex-direction: row;
-    width: fit-content;
+    width: 100%;
     height: fit-content;
     box-shadow: 8px 8px 10px rgba(0,0,0,0.5);
 }
@@ -257,6 +259,17 @@ a {
     border-radius: 10px;
     gap: 0.5em;
     z-index: 5;
+    width: 100%;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.notification > .notification-body p,
+.notification > .notification-body div {
+    max-width: 100%;
+    word-break: break-word;
 }
 
 .notification > .close-notification {
@@ -306,6 +319,9 @@ pre {
 
     .container {
         height: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     .background-dim {
@@ -350,5 +366,22 @@ pre {
 
     .services-container, .docker-container {
         width: calc(100% - 0.5em);
+    }
+
+    /* NOTIFICATION */
+    .notification-container {
+        max-width: 100%;
+        padding: 0 1em;
+        align-items: center;
+        right: 0;
+    }
+
+    .notification {
+        width: calc(100% - 2em);
+    }
+
+    .notification>.notification-body {
+        width: 100%;
+        box-sizing: border-box;
     }
 }
